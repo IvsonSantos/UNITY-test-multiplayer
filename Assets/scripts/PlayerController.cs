@@ -30,4 +30,11 @@ public class PlayerController : NetworkBehaviour {
         transform.Rotate(0, x, 0);
         transform.Translate(0, 0, z);
     }
+	
+	/**
+	This function is only called by the LocalPlayer on their Client. This will make each player see their local player GameObject as blue. The OnStartLocalPlayer function is a good place to do initialization that is only for the local player, such as configuring cameras and input.
+	*/
+	public override void OnStartLocalPlayer() {
+		GetComponent<MeshRenderer>().material.color = Color.blue;
+	}
 }
