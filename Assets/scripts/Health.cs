@@ -2,23 +2,69 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Networking;
 
-
-public class Health : MonoBehaviour {
+/**
+ * Changes to the player’s current health should only be applied on the Server. 
+ * These changes are then synchronized on the Clients. 
+ * This is called Server Authority. 
+ 
+	To make our current health and damage system network aware and working under Server authority, 
+	we need to use State Synchronization and a special member variable on networked objects called SyncVars. 
+	Network synchronized variables, or SyncVars, are indicated with the attribute [SyncVar]. 
+*/
+public class Health : NetworkBehaviour {
 
 	public const int maxHealth = 100;
+
+	[SyncVar(hook = "OnChangeHealth")]
 	public int currentHealth = maxHealth;
+
 	public RectTransform healthBar;
 
 	public void TakeDamage(int amount)
 	{
-		currentHealth -= amount;
-		if (currentHealth <= 0)
+
+		if (!isServer)
 		{
-			currentHealth = 0;
-			Debug.Log("Dead!");
+			return;
 		}
 
-		healthBar.sizeDelta = new Vector2(currentHealth, healthBar.sizeDelta.y);
+		currentHealth -= amount;
+
+		if (currentHealth <= 0)
+		{
+			currentHealth = maxHealth;
+
+			// called on the Server, but invoked on the Clients
+			RpcRespawn ();
+		}
+	
+	}
+
+	/**
+	 * This brings us to another tool for State Synchronization: the SyncVar hook. SyncVar hooks will link a function to the SyncVar. These functions are invoked on the Server and all Clients when the value of the SyncVar changes. For more information on SyncVars and SyncVar hooks, please see the page on State Synchronization.
+	 * */
+
+	void OnChangeHealth (int health)
+	{
+		healthBar.sizeDelta = new Vector2(health, healthBar.sizeDelta.y);
+	}
+
+	/**
+	 * This will also serve as a way to introduce the [ClientRpc] attribute, which is another tool for State Synchronization.
+
+	ClientRpc calls can be sent from any spawned object on the Server with a NetworkIdentity. Even though this function is called on the Server, it will be executed on the Clients. ClientRpc's are the opposite of Commands. Commands are called on the Client, but executed on the Server. ClientRpc's are called on the Server, but executed on the Client.
+
+	To make a function into a ClientRpc call, use the [ClientRpc] attribute and add “Rpc” as a prefix to the name of the function. This function will now be run on Clients when it is called on the Server. Any arguments will automatically be passed to the Clients as part of the ClientRpc call. For more information on the [ClientRpc] attribute, please see the page on Remote Actions.
+	*/
+	[ClientRpc]
+	void RpcRespawn()
+	{
+		if (isLocalPlayer)
+		{
+			// move back to zero location
+			transform.position = Vector3.zero;
+		}
 	}
 }
