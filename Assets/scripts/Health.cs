@@ -24,6 +24,9 @@ public class Health : NetworkBehaviour {
 
 	public bool destroyOnDeath;
 
+	// Add a new array of the type NetworkStartPosition to hold the spawn points.
+	private NetworkStartPosition[] spawnPoints;
+
 	public void TakeDamage(int amount)
 	{
 
@@ -72,7 +75,28 @@ public class Health : NetworkBehaviour {
 		if (isLocalPlayer)
 		{
 			// move back to zero location
-			transform.position = Vector3.zero;
+			//transform.position = Vector3.zero;
+
+			// Set the spawn point to origin as a default value
+			Vector3 spawnPoint = Vector3.zero;
+
+			// If there is a spawn point array and the array is not empty, pick a spawn point at random
+			if (spawnPoints != null && spawnPoints.Length > 0)
+			{
+				spawnPoint = spawnPoints[Random.Range(0, spawnPoints.Length)].transform.position;
+			}
+
+			// Set the player’s position to the chosen spawn point
+			transform.position = spawnPoint;
+		}
+	}
+
+	void Start ()
+	{
+		// add a check to test if this GameObject is associated with the Local Player
+		if (isLocalPlayer)
+		{
+			spawnPoints = FindObjectsOfType<NetworkStartPosition>();
 		}
 	}
 }
